@@ -6,7 +6,10 @@ import android.graphics.Rect;
 import android.os.IBinder;
 import android.util.DisplayMetrics;
 import android.util.Log;
+import android.view.KeyEvent;
+import android.view.MotionEvent;
 import android.view.View;
+import android.view.WindowManager;
 import android.view.inputmethod.InputMethodManager;
 
 import java.util.ArrayList;
@@ -141,5 +144,187 @@ public class DragController {
         v.setWillNotCacheDrawing(willNotCache);
         v.setDrawingCacheBackgroundColor(color);
         return bitmap;
+    }
+
+    public boolean dispatchKeyEvent(KeyEvent event) {
+        return mIsDragging;
+    }
+
+    public void cancelDrag() {
+        endDrag();
+    }
+
+    private void endDrag() {
+        if (mIsDragging) {
+            mIsDragging = false;
+            if (mOriginator != null) {
+                mOriginator.setVisibility(View.VISIBLE);
+            }
+            if (mListener != null) {
+                mListener.onDragEnd();
+            }
+            if (mDragView != null) {
+                // recycle
+                mDragView.remove();
+                mDragView = null;
+            }
+        }
+    }
+
+    public boolean onInterceptTouchEvent(MotionEvent ev) {
+        final int action = ev.getAction();
+        if (action == MotionEvent.ACTION_DOWN) {
+            recordScreenSize();
+        }
+        final int screenX = clamp((int) ev.getRawX(), 0, mDisplayMetrics.widthPixels);
+        final int screenY = clamp((int) ev.getRawY(), 0, mDisplayMetrics.heightPixels);
+        switch (action) {
+            case MotionEvent.ACTION_MOVE:
+                break;
+            case MotionEvent.ACTION_DOWN:
+                mMotionDownX = screenX;
+                mMotionDownY = screenY;
+                mLastDropTarget = null;
+                break;
+            case MotionEvent.ACTION_CANCEL:
+            case MotionEvent.ACTION_UP:
+                if (mIsDragging) {
+                    drop(screenX, screenY);
+                }
+                endDrag();
+                break;
+        }
+        return mIsDragging;
+    }
+
+    /**
+     * Sets the view that should handle move events
+     *
+     * @param view target view
+     */
+    void setMoveTarget(View view) {
+        mMoveTarget = view;
+    }
+
+    public boolean dispatchUnhandledMove(View focused, int direction) {
+        return mMoveTarget != null && mMoveTarget.dispatchUnhandledMove(focused, direction);
+    }
+
+    public boolean onTouchEvent(MotionEvent ev) {
+        // if not dragging not handle drag
+        if (!mIsDragging) {
+            return false;
+        }
+
+        final int action = ev.getAction();
+        final int screenX = clamp((int) ev.getRawX(), 0, mDisplayMetrics.widthPixels);
+        final int screenY = clamp((int) ev.getRawY(), 0, mDisplayMetrics.heightPixels);
+
+        switch (action) {
+            case MotionEvent.ACTION_DOWN:
+                mMotionDownX = screenX;
+                mMotionDownY = screenY;
+                break;
+            case MotionEvent.ACTION_MOVE:
+                mDragView.move((int) ev.getRawX(), (int) ev.getRawY());
+                final int[] coordinates = mCoordinatesTemp;
+                DropTarget dropTarget = findDropTarget(screenX, screenY, coordinates);
+                if (dropTarget != null) {
+                    if (mLastDropTarget == dropTarget) {
+                        dropTarget.onDragOver(mDragSource, coordinates[0], coordinates[1],
+                                (int) mTouchOffsetX, (int) mTouchOffsetY, mDragView, mDragInfo);
+                    } else {
+                        if (mLastDropTarget != null) {
+                            mLastDropTarget.onDragExit(mDragSource, coordinates[0], coordinates[1],
+                                    (int) mTouchOffsetX, (int) mTouchOffsetY, mDragView, mDragInfo);
+                        }
+                        dropTarget.onDragEnter(mDragSource, coordinates[0], coordinates[1],
+                                (int) mTouchOffsetX, (int) mTouchOffsetY, mDragView, mDragInfo);
+                    }
+                } else {
+                    if (mLastDropTarget != null) {
+                        mLastDropTarget.onDragExit(mDragSource, coordinates[0], coordinates[1],
+                                (int) mTouchOffsetX, (int) mTouchOffsetY, mDragView, mDragInfo);
+                    }
+                }
+                mLastDropTarget = dropTarget;
+                break;
+            case MotionEvent.ACTION_UP:
+                if (mIsDragging) {
+                    drop(screenX, screenY);
+                }
+                endDrag();
+                break;
+            case MotionEvent.ACTION_CANCEL:
+                cancelDrag();
+                // TODO: 16/12/13
+                break;
+        }
+        return true;
+
+    }
+
+    private boolean drop(int screenX, int screenY) {
+        final int[] coordinates = mCoordinatesTemp;
+        final DropTarget dropTarget = findDropTarget((int) screenX, (int) screenY, coordinates);
+        if (dropTarget != null) {
+            dropTarget.onDragExit(mDragSource, coordinates[0], coordinates[1],
+                    (int) mTouchOffsetX, (int) mTouchOffsetY, mDragView, mDragInfo);
+
+            if (dropTarget.acceptDrop(mDragSource, coordinates[0], coordinates[1],
+                    (int) mTouchOffsetX, (int) mTouchOffsetY, mDragView, mDragInfo)) {
+                dropTarget.onDrop(mDragSource, coordinates[0], coordinates[1],
+                        (int) mTouchOffsetX, (int) mTouchOffsetY, mDragView, mDragInfo);
+                mDragSource.onDropCompleted((View) dropTarget, true);
+            } else {
+                mDragSource.onDropCompleted((View) dropTarget, false);
+            }
+            return true;
+        }
+        return false;
+    }
+
+    private DropTarget findDropTarget(int screenX, int screenY, int[] coordinates) {
+        final Rect rect = mRectTemp;
+        final ArrayList<DropTarget> dropTargets = mDropTargets;
+        final int count = dropTargets.size();
+        for (int i = count - 1; i >= 0 ; i--) {
+            final DropTarget target = dropTargets.get(i);
+            target.getHitRect(rect);
+            target.getLocationOnScreen(coordinates);
+            rect.offset(coordinates[0] - target.getLeft(), coordinates[1] - target.getTop());
+            if (rect.contains(screenX, screenY)) {
+                coordinates[0] = screenX - coordinates[0];
+                coordinates[1] = screenY - coordinates[1];
+                return target;
+            }
+        }
+        return null;
+    }
+
+    private void recordScreenSize() {
+        ((WindowManager) mContext.getSystemService(Context.WINDOW_SERVICE))
+                .getDefaultDisplay().getMetrics(mDisplayMetrics);
+    }
+
+    private static int clamp(int val, int min, int max) {
+        if (val < min)
+            return min;
+        else if (val >= max)
+            return max - 1;
+        else
+            return val;
+    }
+
+    public void setDragListener(DragListener listener) {
+        mListener = listener;
+    }
+
+    public void addDropTarget(DropTarget target) {
+        mDropTargets.add(target);
+    }
+
+    public void removeDropTarget(DropTarget target) {
+        mDropTargets.remove(target);
     }
 }
