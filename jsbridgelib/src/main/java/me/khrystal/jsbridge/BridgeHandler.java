@@ -9,6 +9,5 @@ package me.khrystal.jsbridge;
  */
 
 public interface BridgeHandler {
-
     void handler(String data, CallbackFunction function);
 }
