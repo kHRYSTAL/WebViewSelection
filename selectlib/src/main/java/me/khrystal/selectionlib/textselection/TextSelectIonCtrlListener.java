@@ -1,4 +1,4 @@
-package me.khrystal.selectionlib.testselection;
+package me.khrystal.selectionlib.textselection;
 
 /**
  * usage:

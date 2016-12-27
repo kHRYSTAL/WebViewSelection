@@ -1,4 +1,4 @@
-package me.khrystal.selectionlib.testselection;
+package me.khrystal.selectionlib.textselection;
 
 import android.webkit.JavascriptInterface;
 
@@ -26,6 +26,14 @@ public class TextSelectionController {
     public void jsLog(String message) {
         if (mListener != null) {
             mListener.jsLog(message);
+        }
+    }
+
+    // TODO need replace
+    @JavascriptInterface
+    public void jsError(String error) {
+        if (mListener != null) {
+            mListener.jsError(error);
         }
     }
 
