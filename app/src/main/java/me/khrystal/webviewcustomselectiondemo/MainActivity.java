@@ -3,6 +3,7 @@ package me.khrystal.webviewcustomselectiondemo;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
 import android.view.ActionMode;
+import android.view.Gravity;
 import android.view.Menu;
 import android.view.MenuItem;
 import android.view.View;
@@ -10,6 +11,8 @@ import android.webkit.WebView;
 import android.webkit.WebViewClient;
 import android.widget.Toast;
 
+import io.github.douglasjunior.androidSimpleTooltip.SimpleTooltip;
+import io.github.douglasjunior.androidSimpleTooltip.SimpleTooltipUtils;
 import me.khrystal.selectionlib.SelectionWebView;
 import me.khrystal.selectionlib.textselection.TextSelectionSupport;
 
@@ -25,22 +28,15 @@ public class MainActivity extends AppCompatActivity {
         setContentView(R.layout.activity_main);
         mWebView = (SelectionWebView) findViewById(R.id.webView);
         mTextSelectionSupport = TextSelectionSupport.support(this, mWebView);
-
-        mWebView.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View v) {
-
-            }
-        });
-
         mTextSelectionSupport.setSelectionListener(new TextSelectionSupport.SelectionListener() {
+
             @Override
             public void startSelection() {
-
+                Toast.makeText(MainActivity.this, "startSelection", Toast.LENGTH_SHORT).show();
             }
 
             @Override
-            public void selectionChanged(String text) {
+            public void selectionChanged(String text, View anchorStartView, View anchorEndView) {
                 Toast.makeText(MainActivity.this, text, Toast.LENGTH_SHORT).show();
             }
 
@@ -57,6 +53,6 @@ public class MainActivity extends AppCompatActivity {
             }
         });
 
-        mWebView.loadUrl("file:///android_asset/content.html");
+        mWebView.loadUrl("file:///android_asset/huxiu.html");
     }
 }

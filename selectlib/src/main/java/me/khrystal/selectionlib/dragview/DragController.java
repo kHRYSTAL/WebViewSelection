@@ -128,14 +128,14 @@ public class DragController {
         v.setWillNotCacheDrawing(false);
         // reset drawing cache background color
         int color = v.getDrawingCacheBackgroundColor();
-        v.setDrawingCacheBackgroundColor(0x00000000);
-        if (color != 0x00000000) {
+        v.setDrawingCacheBackgroundColor(0);
+        if (color != 0) {
             v.destroyDrawingCache();
         }
         v.buildDrawingCache();
         Bitmap cacheBitmap = v.getDrawingCache();
         if (cacheBitmap == null) {
-            Log.e(TAG, "failed getViewBitamp(" + v + ")", new RuntimeException());
+            Log.e(TAG, "failed getViewBitmap(" + v + ")", new RuntimeException());
             return null;
         }
         Bitmap bitmap = Bitmap.createBitmap(cacheBitmap);
@@ -257,8 +257,6 @@ public class DragController {
                 break;
             case MotionEvent.ACTION_CANCEL:
                 cancelDrag();
-                // TODO: 16/12/13
-                break;
         }
         return true;
 

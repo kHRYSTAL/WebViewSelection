@@ -64,7 +64,7 @@ public class DragLayer extends CopyAbsoluteLayout implements DragSource, DropTar
     public void onDrop(DragSource source, int x, int y, int xOffset, int yOffset,
                        DragView dragView, Object dragInfo) {
 
-        final View v = (View)dragInfo;
+        final View v = (View) dragInfo;
         final int w = v.getWidth();
         final int h = v.getHeight();
         final int left = x - xOffset;

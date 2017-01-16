@@ -6,6 +6,7 @@ import android.content.Context;
 import android.graphics.Rect;
 import android.os.Build;
 import android.util.DisplayMetrics;
+import android.util.Log;
 import android.view.Display;
 import android.view.LayoutInflater;
 import android.view.MotionEvent;
@@ -71,16 +72,16 @@ public class TextSelectionSupport implements TextSelectIonCtrlListener, View.OnT
     private float mScale = 1.0f;
 
     private Runnable mStartSelectionModeHandler = new Runnable() {
-        @Override
         public void run() {
             if (mSelectionBounds != null) {
                 mWebView.addView(mSelectionDragLayer);
                 drawSelectionHandles();
-                final int contentHeight = (int) Math.ceil(getDensityDependentValue(mWebView.getContentHeight(), mActivity));
+                final int contentHeight = (int)Math.ceil(getDensityDependentValue(mWebView.getContentHeight(), mActivity));
                 final int contentWidth = mWebView.getWidth();
-                ViewGroup.LayoutParams layoutParams = mSelectionDragLayer.getLayoutParams();
-                layoutParams.width = Math.max(contentWidth, mContentWidth);
-                mSelectionDragLayer.setLayoutParams(layoutParams);
+                ViewGroup.LayoutParams layerParams = mSelectionDragLayer.getLayoutParams();
+                layerParams.height = contentHeight;
+                layerParams.width = Math.max(contentWidth, mContentWidth);
+                mSelectionDragLayer.setLayoutParams(layerParams);
                 if (mSelectionListener != null) {
                     mSelectionListener.startSelection();
                 }
@@ -88,13 +89,12 @@ public class TextSelectionSupport implements TextSelectIonCtrlListener, View.OnT
         }
     };
 
-    private Runnable endSelectionModeHandler = new Runnable() {
-        @Override
+    private Runnable mEndSelectionModeHandler = new Runnable(){
         public void run() {
+            Log.e(TAG, "removeView");
             mWebView.removeView(mSelectionDragLayer);
             mSelectionBounds = null;
             mLastTouchedSelectionHandle = HanlderType.TYPE_UNKNOW;
-            // TODO need replace
             mWebView.loadUrl("javascript: android.selection.clearSelection();");
             if (mSelectionListener != null) {
                 mSelectionListener.endSelection();
@@ -137,6 +137,7 @@ public class TextSelectionSupport implements TextSelectIonCtrlListener, View.OnT
         final LayoutInflater inflater = (LayoutInflater) context.getSystemService(Context.LAYOUT_INFLATER_SERVICE);
         mSelectionDragLayer = (DragLayer) inflater.inflate(R.layout.selection_drag_layer, null);
         mDragController = new DragController(context);
+        mDragController.setDragListener(this);
         mDragController.addDropTarget(mSelectionDragLayer);
         mSelectionDragLayer.setDragController(mDragController);
         mStartSelectionHandle = (ImageView) mSelectionDragLayer.findViewById(R.id.startHandle);
@@ -206,9 +207,8 @@ public class TextSelectionSupport implements TextSelectIonCtrlListener, View.OnT
             case MotionEvent.ACTION_UP:
                 if (!mScrolling) {
                     endSelectionMode();
-                }
-                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.KITKAT) {
-                    return false;
+                    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.KITKAT)
+                        return false;
                 }
                 mScrollDiffX = 0;
                 mScrollDiffY = 0;
@@ -259,15 +259,12 @@ public class TextSelectionSupport implements TextSelectIonCtrlListener, View.OnT
                 endY = getDensityIndependentValue(endY, context) / scale;
 
                 if (mLastTouchedSelectionHandle == HanlderType.TYPE_START && startX > 0 && startY > 0) {
-                    // TODO: 17/1/5 need jsBridge func
                     String saveStartString = String.format(Locale.getDefault(), "javascript: android.selection.setStartPos(%f, %f);", startX, startY);
                     mWebView.loadUrl(saveStartString);
                 } else if (mLastTouchedSelectionHandle == HanlderType.TYPE_END && endX > 0 && endY > 0) {
-                    // TODO: 17/1/5 need jsBridge func
                     String saveEndString = String.format(Locale.getDefault(), "javascript: android.selection.setEndPos(%f, %f);", endX, endY);
                     mWebView.loadUrl(saveEndString);
                 } else {
-                    // TODO: 17/1/5 restore must replace to jsBridge func
                     mWebView.loadUrl("javascript: android.selection.restoreStartEndPos();");
                 }
             }
@@ -286,12 +283,14 @@ public class TextSelectionSupport implements TextSelectIonCtrlListener, View.OnT
 
     @Override
     public void startSelectionMode() {
+        KLog.e(TAG, "startSelection");
         mActivity.runOnUiThread(mStartSelectionModeHandler);
     }
 
     @Override
     public void endSelectionMode() {
-        mActivity.runOnUiThread(endSelectionModeHandler);
+        KLog.e(TAG, "endSelection");
+        mActivity.runOnUiThread(mEndSelectionModeHandler);
     }
 
     @Override
@@ -312,7 +311,7 @@ public class TextSelectionSupport implements TextSelectIonCtrlListener, View.OnT
             }
             drawSelectionHandles();
             if (mSelectionListener != null && isReallyChanged) {
-                mSelectionListener.selectionChanged(text);
+                mSelectionListener.selectionChanged(text, mStartSelectionHandle, mEndSelectionHandle);
             }
         } catch (JSONException e) {
             e.printStackTrace();
@@ -378,7 +377,7 @@ public class TextSelectionSupport implements TextSelectIonCtrlListener, View.OnT
     public interface SelectionListener {
         void startSelection();
 
-        void selectionChanged(String text);
+        void selectionChanged(String text, View anchorStartView, View anchorEndView);
 
         void endSelection();
     }
