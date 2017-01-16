@@ -38,6 +38,7 @@ import me.khrystal.selectionlib.utils.KLog;
  */
 
 @SuppressLint("DefaultLocale")
+@SuppressWarnings("ResourceType")
 public class TextSelectionSupport implements TextSelectIonCtrlListener, View.OnTouchListener,
         View.OnLongClickListener, DragListener {
 
@@ -60,8 +61,7 @@ public class TextSelectionSupport implements TextSelectIonCtrlListener, View.OnT
     private TextSelectionController mSelectionController = null;
     private int mContentWidth = 0;
 
-    @HanlderType.ModeTypeChecker
-    private  int mLastTouchedSelectionHandle = HanlderType.TYPE_UNKNOW;
+    private @HanlderType.ModeTypeChecker int mLastTouchedSelectionHandle = HanlderType.TYPE_UNKNOW;
 
     private boolean mScrolling = false;
     private float mScrollDiffY = 0;
@@ -101,7 +101,6 @@ public class TextSelectionSupport implements TextSelectIonCtrlListener, View.OnT
             }
         }
     };
-    private boolean inSelectionMode;
 
     private TextSelectionSupport(Activity activity, WebView webView) {
         mActivity = activity;
@@ -113,6 +112,8 @@ public class TextSelectionSupport implements TextSelectIonCtrlListener, View.OnT
         selectionSupport.setup();
         return selectionSupport;
     }
+
+
 
     /**
      * javaScript Enable and setUp
@@ -145,22 +146,26 @@ public class TextSelectionSupport implements TextSelectIonCtrlListener, View.OnT
         mEndSelectionHandle.setTag(HanlderType.TYPE_END);
 
         final View.OnTouchListener handleTouchListener = new View.OnTouchListener() {
+
             @Override
             public boolean onTouch(View v, MotionEvent event) {
                 boolean handledHere = false;
                 if (event.getAction() == MotionEvent.ACTION_DOWN) {
                     handledHere = startDrag(v);
-                   // mLastTouchedSelectionHandle =  (int)v.getTag();
+                    //noinspection ResourceType
+                    mLastTouchedSelectionHandle = (int) v.getTag();
                 }
-                return false;
+                return handledHere;
             }
-
-
         };
+        mStartSelectionHandle.setOnTouchListener(handleTouchListener);
+        mEndSelectionHandle.setOnTouchListener(handleTouchListener);
     }
 
     private boolean startDrag(View v) {
-        return false;
+        Object dragInfo = v;
+        mDragController.startDrag(v, mSelectionDragLayer, dragInfo, DragController.DragBehavior.MOVE);
+        return true;
     }
 
     public void onScaleChanged(float oldScale, float newScale) {
@@ -176,7 +181,7 @@ public class TextSelectionSupport implements TextSelectIonCtrlListener, View.OnT
     public boolean onLongClick(View v) {
         if (!isInSelectionMode()) {
             // TODO: 17/1/5 need jsbridge func
-            mWebView.loadUrl("");
+            mWebView.loadUrl("javascript:android.selection.longTouch();");
             mScrolling = true;
         }
         return true;
@@ -193,7 +198,7 @@ public class TextSelectionSupport implements TextSelectIonCtrlListener, View.OnT
         switch (event.getAction()) {
             case MotionEvent.ACTION_DOWN:
                 // TODO: 17/1/5 need jsbridge func
-                final String startTouchUrl = String.format(Locale.getDefault(), "", xPoint, yPoint);
+                final String startTouchUrl = String.format(Locale.getDefault(), "javascript:android.selection.startTouch(%f, %f);", xPoint, yPoint);
                 mLastTouchX = xPoint;
                 mLastTouchY = yPoint;
                 mWebView.loadUrl(startTouchUrl);
@@ -255,15 +260,15 @@ public class TextSelectionSupport implements TextSelectIonCtrlListener, View.OnT
 
                 if (mLastTouchedSelectionHandle == HanlderType.TYPE_START && startX > 0 && startY > 0) {
                     // TODO: 17/1/5 need jsBridge func
-                    String saveStartString = String.format(Locale.getDefault(), "", startX, startY);
+                    String saveStartString = String.format(Locale.getDefault(), "javascript: android.selection.setStartPos(%f, %f);", startX, startY);
                     mWebView.loadUrl(saveStartString);
                 } else if (mLastTouchedSelectionHandle == HanlderType.TYPE_END && endX > 0 && endY > 0) {
                     // TODO: 17/1/5 need jsBridge func
-                    String saveEndString = String.format(Locale.getDefault(), "", endX, endY);
+                    String saveEndString = String.format(Locale.getDefault(), "javascript: android.selection.setEndPos(%f, %f);", endX, endY);
                     mWebView.loadUrl(saveEndString);
                 } else {
                     // TODO: 17/1/5 restore must replace to jsBridge func
-                    mWebView.loadUrl("");
+                    mWebView.loadUrl("javascript: android.selection.restoreStartEndPos();");
                 }
             }
         });
@@ -366,9 +371,8 @@ public class TextSelectionSupport implements TextSelectIonCtrlListener, View.OnT
         return val / (metrics.densityDpi / 160f);
     }
 
-    //TODO
     public boolean isInSelectionMode() {
-        return inSelectionMode;
+        return this.mSelectionDragLayer.getParent() != null;
     }
 
     public interface SelectionListener {
