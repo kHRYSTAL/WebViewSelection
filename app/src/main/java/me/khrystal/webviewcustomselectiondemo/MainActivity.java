@@ -34,7 +34,7 @@ public class MainActivity extends AppCompatActivity {
             @Override
             public void selectionChanged(String text, View anchorStartView, View anchorEndView) {
                 Toast.makeText(MainActivity.this, text, Toast.LENGTH_SHORT).show();
-                final SimpleTooltip builder = new SimpleTooltip.Builder(MainActivity.this)
+                SimpleTooltip builder = new SimpleTooltip.Builder(MainActivity.this)
                         .anchorView(anchorStartView)
                         .text(R.string.copy)
                         .showArrow(true)
@@ -45,13 +45,6 @@ public class MainActivity extends AppCompatActivity {
                         .dismissOnInsideTouch(false)
                         .build();
                 builder.show();
-                builder.findViewById(R.id.btn_copy).setOnClickListener(new View.OnClickListener() {
-                    @Override
-                    public void onClick(View v) {
-                        builder.dismiss();
-                    }
-                });
-
             }
 
             @Override
