@@ -43,7 +43,13 @@ public class BridgeWebViewClient extends WebViewClient {
         } catch (UnsupportedEncodingException e) {
             e.printStackTrace();
         }
-        if (url.startsWith(BridgeUtil.RETURN_DATA)) {
+
+        if (url.trim().equals(BridgeUtil.OVERRIDE_LOADED)) {
+            if (BridgeAdapter.toLoadJs != null) {
+                BridgeUtil.webViewLoadLocalJs(view, BridgeAdapter.toLoadJs);
+            }
+            return true;
+        }else if (url.startsWith(BridgeUtil.RETURN_DATA)) {
             mAdapter.handlerReturnData(url);
             return true;
         } else if (url.startsWith(BridgeUtil.OVERRIDE_SCHEMA)) {
@@ -104,11 +110,6 @@ public class BridgeWebViewClient extends WebViewClient {
         super.onPageFinished(view, url);
         if (mClient != null)
             mClient.onPageFinished(view, url);
-        if (BridgeAdapter.toLoadJs != null) {
-            Log.e("onPageFinished", BridgeAdapter.toLoadJs);
-            BridgeUtil.webViewLoadLocalJs(view, BridgeAdapter.toLoadJs);
-        }
-
         //
         if (mAdapter.getStartupMessage() != null) {
             for (Message m : mAdapter.getStartupMessage()) {

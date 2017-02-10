@@ -19,6 +19,7 @@ import java.io.InputStreamReader;
 
 public class BridgeUtil {
     final static String OVERRIDE_SCHEMA = "wvjbscheme://";
+    final static String OVERRIDE_LOADED = OVERRIDE_SCHEMA + "__BRIDGE_LOADED__";
     // 格式为 yy://return/{function}/returncontent return 后跟函数名 再后跟返回的内容
     final static String RETURN_DATA = OVERRIDE_SCHEMA + "return/";
     final static String FETCH_QUEUE = RETURN_DATA + "_fetchQueue/";
