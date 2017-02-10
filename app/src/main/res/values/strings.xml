@@ -1,3 +1,4 @@
 <resources>
     <string name="app_name">WebViewCustomSelectionDemo</string>
+    <string name="copy">Copy</string>
 </resources>

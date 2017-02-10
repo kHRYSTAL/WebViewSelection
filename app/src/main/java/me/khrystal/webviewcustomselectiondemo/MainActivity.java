@@ -1,18 +1,14 @@
 package me.khrystal.webviewcustomselectiondemo;
 
-import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
-import android.view.ActionMode;
+import android.support.v7.app.AppCompatActivity;
 import android.view.Gravity;
-import android.view.Menu;
-import android.view.MenuItem;
 import android.view.View;
 import android.webkit.WebView;
 import android.webkit.WebViewClient;
 import android.widget.Toast;
 
 import io.github.douglasjunior.androidSimpleTooltip.SimpleTooltip;
-import io.github.douglasjunior.androidSimpleTooltip.SimpleTooltipUtils;
 import me.khrystal.selectionlib.SelectionWebView;
 import me.khrystal.selectionlib.textselection.TextSelectionSupport;
 
@@ -38,6 +34,17 @@ public class MainActivity extends AppCompatActivity {
             @Override
             public void selectionChanged(String text, View anchorStartView, View anchorEndView) {
                 Toast.makeText(MainActivity.this, text, Toast.LENGTH_SHORT).show();
+                SimpleTooltip builder = new SimpleTooltip.Builder(MainActivity.this)
+                        .anchorView(anchorStartView)
+                        .text(R.string.copy)
+                        .showArrow(true)
+                        .animated(true)
+                        .margin(0.0f)
+                        .gravity(Gravity.TOP)
+                        .dismissOnOutsideTouch(true)
+                        .dismissOnInsideTouch(false)
+                        .build();
+                builder.show();
             }
 
             @Override
